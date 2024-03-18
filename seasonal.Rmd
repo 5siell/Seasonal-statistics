@@ -1,0 +1,651 @@
+---
+title: "Untitled"
+author: "Christos"
+date: "2024-03-15"
+output: html_document
+---
+
+```{r}
+# clear environment
+rm(list=ls())
+```
+
+```{r}
+#change to your own
+setwd("/Users/simelagrigoriadou/Desktop/temporary_directory")
+library(dplyr)
+library(ggplot2)
+library(RColorBrewer)
+library(ggrepel)
+library(scales)
+library(zoo)
+```
+
+```{r}
+dat <- read.csv("seasonal_csv.csv")
+df1 <- dat
+df2 <-subset(df1, select = -c(X, X.1))
+df <- df2[complete.cases(df2), ]
+```
+
+Explanatory Statistics
+- Percentile Distribution
+- Density Plot of Percentile
+```{r}
+hist(df$Percentile, breaks=50, main="Percentile Distribution", xlab="Percentile", col="blue")
+plot(density(df$Percentile), main="Density Plot of Percentile", xlab="Percentile", ylab="Density", col="red")
+dens <- density(df$Percentile)
+peaks <- which(diff(sign(diff(dens$y)))==-2) + 1
+peak_values <- dens$x[peaks]
+print(peak_values)
+```
+
+Cumulative Wins, Season 40 onwards
+```{r}
+cumulative_wins <- df %>%
+  filter(Season.No >= 40) %>%  # Filter for season 40 onwards
+  group_by(Harmony.Player) %>%
+  arrange(Harmony.Player, Season.No) %>%
+  mutate(cumulative_wins = cumsum(Wins))
+
+# Find the last season each player participated in
+last_participation <- cumulative_wins %>%
+  group_by(Harmony.Player) %>%
+  summarize(last_season = max(Season.No))
+
+# Merge the last participation season back into the cumulative wins data
+cumulative_wins <- cumulative_wins %>%
+  left_join(last_participation, by = "Harmony.Player")
+
+# Get a color palette
+colors <- brewer.pal(n = min(length(unique(cumulative_wins$Harmony.Player)), 12), name = "Set3")
+
+# Plot cumulative wins with specified colors and add labels with ggrepel for all players
+cumulative_wins_over_time <- ggplot(cumulative_wins, aes(x = Season.No, y = cumulative_wins, group = Harmony.Player)) +
+  geom_line(aes(color = Harmony.Player), size = 1, alpha = 0.6) + # Base lines thin and semi-transparent
+  geom_text_repel(data = cumulative_wins %>% filter(Season.No == last_season),
+                  aes(label = Harmony.Player, color = Harmony.Player), 
+                  nudge_x = 1, nudge_y = 1,  # Increase the nudge if necessary
+                  max.overlaps = 10, # Increase the max overlaps
+                  direction = 'y') +
+  scale_color_manual(values = rep(colors, length.out = length(unique(cumulative_wins$Harmony.Player)))) +
+  labs(title = "Cumulative Wins Over Time (From Season 40 Onwards)", 
+       x = "Season Number", 
+       y = "Cumulative Wins") +
+  theme(legend.position = "none") # Hide the legend due to ggrepel labels
+
+ggsave("cumulative_wins_over_time.png", cumulative_wins_over_time, width = 12, height = 8, dpi = 300)
+```
+
+
+
+Top Players (NOT USED)
+```{r}
+top_players_2 <- df %>%
+  filter(Season.No == max(Season.No)) %>%
+  arrange(desc(Percentile)) %>%
+  slice_head(n = 5) %>%
+  pull(Harmony.Player)
+
+colors <- brewer.pal(n = min(length(unique(df$Harmony.Player)), 12), name = "Set3")
+
+ggplot(df, aes(x = Season.No, y = Percentile, group = Harmony.Player)) +
+  geom_line(aes(color = Harmony.Player), size = 1, alpha = 0.6) + # Base lines thin and semi-transparent
+  geom_line(data = subset(df, Harmony.Player %in% top_players_2),
+            aes(color = Harmony.Player), size = 2) + # Top players' lines thicker
+  scale_color_manual(values = rep(colors, length.out = length(unique(df$Harmony.Player)))) +
+  labs(title = "Percentile Progression Over Time", x = "Season Number", y = "Percentile") +
+  theme(legend.position = "bottom") # Move the legend to the bottom
+```
+
+
+Top Players, Season 40 onwards (not used)
+```{r}
+df_filtered <- df %>%
+  filter(Season.No >= 40)
+
+top_players_3 <- df_filtered %>%
+  filter(Season.No == max(Season.No)) %>%
+  arrange(desc(Percentile)) %>%
+  slice_head(n = 5) %>%
+  pull(Harmony.Player)
+
+
+colors <- brewer.pal(n = min(length(unique(df_filtered$Harmony.Player)), 12), name = "Set3")
+
+
+ggplot(df_filtered, aes(x = Season.No, y = Percentile, group = Harmony.Player)) +
+  geom_line(aes(color = Harmony.Player), size = 1, alpha = 0.6) + # Base lines thin and semi-transparent
+  geom_line(data = subset(df_filtered, Harmony.Player %in% top_players_3),
+            aes(color = Harmony.Player), size = 2) + # Top players' lines thicker
+  scale_color_manual(values = rep(colors, length.out = length(unique(df_filtered$Harmony.Player)))) +
+  labs(title = "Percentile Progression Over Time (From Season 40 Onwards)", x = "Season Number", y = "Percentile") +
+  theme(legend.position = "bottom") # Move the legend to the bottom
+```
+
+Percentile Progression Over Time season 40 onwards, >60%
+```{r}
+df_filtered <- df %>%
+  filter(Season.No >= 40, Percentile > 0.60)
+
+# Find the last season each player participated in
+last_participation_filtered <- df_filtered %>%
+  group_by(Harmony.Player) %>%
+  summarize(last_season = max(Season.No)) %>%
+  ungroup()
+
+# Merge the last participation season back into the filtered data
+df_filtered <- df_filtered %>%
+  left_join(last_participation_filtered, by = "Harmony.Player")
+
+# Calculate the top players based on the last season's percentile within the filtered data
+top_players_4 <- df_filtered %>%
+  filter(Season.No == max(Season.No)) %>%
+  arrange(desc(Percentile)) %>%
+  slice_head(n = 5) %>%
+  pull(Harmony.Player)
+
+# Get a color palette
+colors <- brewer.pal(n = min(length(unique(df_filtered$Harmony.Player)), 12), name = "Set3")
+
+# Plot percentile progression with specified colors and highlight top players, and add labels with ggrepel for all players
+perc_prog_over_time <- ggplot(df_filtered, aes(x = Season.No, y = Percentile, group = Harmony.Player)) +
+  geom_line(aes(color = Harmony.Player), size = 1, alpha = 0.6) + # Base lines thin and semi-transparent
+  geom_point(aes(color = Harmony.Player), size = 3, shape = 21, fill = "white") + # Add points
+  geom_text_repel(data = df_filtered %>% filter(Season.No == last_season),
+                  aes(label = Harmony.Player, color = Harmony.Player), 
+                  nudge_x = 1, nudge_y = 0.1,  # Adjust the nudge if necessary
+                  max.overlaps = Inf, # Allow overlaps
+                  direction = 'y') +
+  scale_color_manual(values = rep(colors, length.out = length(unique(df_filtered$Harmony.Player)))) +
+  labs(title = "Percentile Progression Over Time (Season 40+, >60%)", 
+       x = "Season Number", 
+       y = "Percentile") +
+  theme(legend.position = "bottom") + # Move the legend to the bottom
+  ylim(0, 1.2) # Set y-axis limits
+
+ggsave("perc_prog_over_time.png", perc_prog_over_time, width = 12, height = 8, dpi = 300)
+
+```
+
+
+Win Rate over Season (not used)
+```{r}
+df_filtered <- df %>%
+  filter(Season.No >= 40)
+
+# Get a color palette suitable for many categories
+colors <- colorRampPalette(brewer.pal(12, "Set3"))(length(unique(df_filtered$Harmony.Player)))
+
+# Plot win ratio progression for seasons 40 and onwards for all players
+ggplot(df_filtered, aes(x = Season.No, y = Win.Rate, group = Harmony.Player)) +
+  geom_line(aes(color = Harmony.Player), size = 1, alpha = 0.6) + # Draw lines
+  geom_point(aes(color = Harmony.Player), size = 2, shape = 21, fill = "white") + # Add points
+  scale_color_manual(values = colors) +
+  labs(title = "Win Ratio Progression Over Time (From Season 40 Onwards)", x = "Season Number", y = "Win Ratio") +
+  theme(legend.position = "bottom") # Hide the legend as there are too many players
+```
+
+Win Ratio Progression (season 40 onwards) (bad graph)
+```{r}
+df_filtered <- df %>%
+  filter(Season.No >= 40)
+
+# Get a color palette suitable for many categories
+colors <- colorRampPalette(brewer.pal(12, "Set3"))(length(unique(df_filtered$Harmony.Player)))
+
+# Plot win ratio progression for seasons 40 and onwards for all players
+win_ratio_plot <- ggplot(df_filtered, aes(x = Season.No, y = Win.Rate, group = Harmony.Player)) +
+  geom_line(aes(color = Harmony.Player), size = 1, alpha = 0.6) + # Draw lines
+  geom_point(aes(color = Harmony.Player), size = 3, shape = 21, fill = "white") + # Add points
+  scale_color_manual(values = colors) +
+  labs(title = "Win Ratio Progression Over Time (From Season 40 Onwards)", x = "Season Number", y = "Win Ratio")
+
+# Prepare a label data frame for the last participation of each player
+df_labels <- df_filtered %>%
+  group_by(Harmony.Player) %>%
+  summarize(Last.Season.No = max(Season.No), Last.Win.Rate = Win.Rate[which.max(Season.No)]) %>%
+  ungroup()
+
+# Add text labels using ggrepel for the last participation point of each player
+win_ratio_plot <- win_ratio_plot +
+  geom_text_repel(data = df_labels, 
+                  aes(label = Harmony.Player, x = Last.Season.No, y = Last.Win.Rate),
+                  nudge_x = 0.5, # Nudge labels to the right
+                  size = 3,
+                  direction = "y",
+                  box.padding = unit(0.35, "lines"),
+                  point.padding = unit(0.3, "lines"))
+win_ratio_plot + theme(legend.position = "bottom",
+                       legend.key.size = unit(0.5, "cm"), # Smaller keys
+                       legend.text = element_text(size = 6), # Smaller text
+                       legend.title = element_text(size = 7), # Smaller title
+                       legend.margin = margin(2, 2, 2, 2)) # Tighter margin around the legend
+win_ratio_plot + theme(legend.position = "bottom")
+ggsave("winratioprogression.png", win_ratio_plot, width = 12, height = 8, dpi = 300)
+# Hide the legend as there are too many players
+
+win_ratio_plot
+
+
+```
+
+
+
+not used rn heatmap
+```{r}
+df_filtered <- df %>%
+  filter(Season.No >= 40)
+
+# Define the breaks and corresponding colors for the custom fill scale
+breaks <- c(0, 0.4, 0.6, 0.75, 0.9, 1)
+colors <- c("red", "orange", "yellow", "lightgreen", "green")
+labels <- c("Low", "Medium", "Medium-High", "High", "Elite") # 5 labels for 6 breaks
+
+# Create the heatmap
+ggplot(df_filtered, aes(x = Season.No, y = Harmony.Player, fill = Percentile)) +
+  geom_tile() +
+  scale_fill_gradientn(colors = colors, 
+                       values = rescale(breaks),
+                       breaks = breaks[-length(breaks)], # Exclude the last break for the legend
+                       labels = labels,
+                       guide = guide_legend(title = "Performance")) +
+  labs(title = "Seasonal Performance Heatmap (From Season 40 Onwards)", 
+       x = "Season Number", 
+       y = "Player Name") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) # Rotate x-axis text if needed
+```
+
+
+heatmap
+```{r}
+df_filtered <- df %>%
+  filter(Season.No >= 40) %>%
+  mutate(Performance_Category = cut(Percentile,
+                                    breaks = c(-Inf, 0.4, 0.6, 0.75, 0.9, 0.95, Inf),
+                                    labels = c("< 0.4", "0.4 - 0.6", "0.6 - 0.75", "0.75 - 0.9", "0.9 - 0.95", "> 0.95")))
+
+# Define the colors for the custom fill scale, including a new color for the highest category
+colors <- c("< 0.4" = "#d73027",
+            "0.4 - 0.6" = "#fc8d59",
+            "0.6 - 0.75" = "#fee08b",
+            "0.75 - 0.9" = "#d9ef8b",
+            "0.9 - 0.95" = "#a6d96a",
+            "> 0.95" = "#1a9850")
+
+# Create the heatmap with the updated categories
+heatmap_plot <- ggplot(df_filtered, aes(x = Season.No, y = Harmony.Player, fill = Performance_Category)) +
+  geom_tile() +
+  scale_fill_manual(values = colors) +
+  labs(title = "Seasonal Performance Heatmap (From Season 40 Onwards)", 
+       x = "Season Number", 
+       y = "Player Name") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) # Rotate x-axis text if needed
+ggsave("heatmap_plot.png", heatmap_plot, width = 12, height = 8, dpi = 300)
+# Print the heatmap plot
+heatmap_plot
+```
+
+LTVs
+```{r}
+player_lifetime_stats <- df %>%
+  group_by(Harmony.Player) %>%
+  summarize(
+    Average_Rank = mean(Rank, na.rm = TRUE), 
+    Average_Percentile = mean(Percentile, na.rm = TRUE),
+    Total_Games = sum(Games, na.rm = TRUE),
+    Total_Wins = sum(Wins, na.rm = TRUE),
+    Total_Defeats = sum(Defeats, na.rm = TRUE),
+    Overall_Win_Rate = mean(Win.Rate, na.rm = TRUE)
+  )
+
+# View the first few rows of the player lifetime statistics
+head(player_lifetime_stats)
+
+# LTV's
+
+# Normalize the components and calculate LTV with your chosen weights
+player_lifetime_stats_1 <- player_lifetime_stats %>%
+  mutate(
+    Normalized_Avg_Rank = (max(Average_Rank) - Average_Rank) / (max(Average_Rank) - min(Average_Rank)), # Lower rank is better, so invert
+    Normalized_Avg_Percentile = (Average_Percentile - min(Average_Percentile)) / (max(Average_Percentile) - min(Average_Percentile)),
+    Normalized_Total_Wins = (Total_Wins - min(Total_Wins)) / (max(Total_Wins) - min(Total_Wins)),
+    Normalized_Total_Games = (Total_Games - min(Total_Games)) / (max(Total_Games) - min(Total_Games)),
+    Normalized_Win_Rate = (Overall_Win_Rate - min(Overall_Win_Rate)) / (max(Overall_Win_Rate) - min(Overall_Win_Rate)),
+    LTV = Normalized_Avg_Percentile * 0.5 + # Higher weight for percentile
+      Normalized_Total_Wins * 0.1 + 
+      Normalized_Avg_Rank * 0.1 +
+      Normalized_Total_Games * 0.1 +
+      Normalized_Win_Rate * 0.2
+  )
+
+# View the first few rows of the updated dataframe
+head(player_lifetime_stats_1)
+
+#######
+
+# Filter players with LTV higher than 0.5
+high_ltv_players <- player_lifetime_stats_1 %>%
+  filter(LTV > 0.5) %>%
+  arrange(desc(LTV)) # Arrange by descending LTV for better visualization
+
+# Create a bar chart
+ltv_graph <- ggplot(high_ltv_players, aes(x = reorder(Harmony.Player, LTV), y = LTV)) +
+  geom_bar(stat = "identity") + # Use identity to use the actual LTV values
+  geom_text(aes(label = round(LTV, 2)), vjust = -0.3, size = 3.5) + # Add text labels with LTV values
+  labs(title = "Players with LTV higher than 0.5",
+       x = "Player Name",
+       y = "Lifetime Value (LTV)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) # Rotate player names for readability
+ggsave("ltvgraph.png", ltv_graph, width = 12, height = 8, dpi = 300)
+
+
+```
+
+clan moving average and percentile over season
+```{r}
+clan_season_stats <- df %>%
+  group_by(Season.No) %>%
+  summarize(Avg_Percentile = mean(Percentile, na.rm = TRUE)) %>%
+  ungroup()
+
+# Calculate a moving average of the average percentile
+window_size <- 3 # Define the window size for the moving average
+clan_season_stats <- clan_season_stats %>%
+  mutate(Moving_Avg_Percentile = rollmean(Avg_Percentile, window_size, fill = NA, align = 'right'))
+
+# Plot the moving average with a legend
+clan_moving_average <- ggplot(clan_season_stats, aes(x = Season.No)) +
+  geom_line(aes(y = Avg_Percentile, color = "Actual Average Percentile"), alpha = 0.5) +
+  geom_line(aes(y = Moving_Avg_Percentile, color = "Moving Average Percentile")) +
+  scale_color_manual(values = c("Actual Average Percentile" = "blue", "Moving Average Percentile" = "red")) +
+  labs(title = "Clan's Average Percentile and Moving Average Over Seasons",
+       x = "Season Number",
+       y = "Average Percentile") +
+  theme_minimal() +
+  theme(legend.title = element_blank()) # Removes the legend title if desired
+ggsave("clan_moving_average.png", clan_moving_average, width = 12, height = 8, dpi = 300)
+
+```
+
+Moving Average >0.6, 40 season onwards
+```{r}
+players_over_60 <- df %>%
+  filter(Season.No >= 40) %>%
+  group_by(Harmony.Player) %>%
+  filter(any(Percentile > 0.6)) %>%
+  ungroup()
+
+# Calculate the average percentile for each season for these players
+player_season_stats_over_60 <- players_over_60 %>%
+  group_by(Season.No, Harmony.Player) %>%
+  summarize(Avg_Percentile = mean(Percentile, na.rm = TRUE)) %>%
+  ungroup()
+
+# Calculate a moving average of the average percentile for each player
+window_size <- 3 # Define the window size for the moving average
+player_season_stats_over_60 <- player_season_stats_over_60 %>%
+  group_by(Harmony.Player) %>%
+  mutate(Moving_Avg_Percentile = rollmean(Avg_Percentile, window_size, fill = NA, align = 'right')) %>%
+  ungroup()
+
+# Plot the moving average for each player with points and include a legend with ggrepel
+plot <- ggplot(player_season_stats_over_60, aes(x = Season.No, group = Harmony.Player)) +
+  geom_line(aes(y = Moving_Avg_Percentile, color = Harmony.Player), alpha = 0.5) +
+  geom_point(aes(y = Avg_Percentile, color = Harmony.Player)) +
+  geom_text_repel(
+    aes(label = Harmony.Player, y = Moving_Avg_Percentile),
+    nudge_x = 0.5,
+    direction = 'y',
+    hjust = 0.5,
+    vjust = 0.5
+  ) +
+  scale_x_continuous(breaks = seq(40, max(df$Season.No), by = 3)) + # Adjust x-axis breaks
+  labs(title = "Moving Average of Percentile for Players Over 0.6 (Season 40+)",
+       x = "Season Number",
+       y = "Percentile") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), # Improve x-axis label readability
+        legend.position = "bottom") # Hide the legend due to ggrepel labels
+ggsave("player_percentiles_over_60.png", plot, width = 12, height = 8, dpi = 300)
+
+
+plot
+
+```
+
+ignore
+```{r}
+#without the warning
+
+# Filter the dataframe for seasons 40 and onwards and players who have performed over 0.6 at least once
+players_over_60 <- df %>%
+  filter(Season.No >= 40) %>%
+  group_by(Harmony.Player) %>%
+  filter(any(Percentile > 0.6)) %>%
+  ungroup()
+
+# Calculate the average percentile for each season for these players
+player_season_stats_over_60 <- players_over_60 %>%
+  group_by(Season.No, Harmony.Player) %>%
+  summarize(Avg_Percentile = mean(Percentile, na.rm = TRUE)) %>%
+  ungroup()
+
+# Calculate a moving average of the average percentile for each player
+window_size <- 3 # Define the window size for the moving average
+player_season_stats_over_60 <- player_season_stats_over_60 %>%
+  group_by(Harmony.Player) %>%
+  mutate(Moving_Avg_Percentile = rollmean(Avg_Percentile, window_size, fill = NA, align = 'right')) %>%
+  ungroup()
+
+# Filter out the NAs introduced by the rolling mean for plotting
+player_season_stats_over_60 <- player_season_stats_over_60 %>%
+  filter(!is.na(Moving_Avg_Percentile))
+
+# Plot the moving average for each player with points and include a legend with ggrepel
+plot <- ggplot(player_season_stats_over_60, aes(x = Season.No, group = Harmony.Player)) +
+  geom_line(aes(y = Moving_Avg_Percentile, color = Harmony.Player), alpha = 0.5) +
+  geom_point(aes(y = Avg_Percentile, color = Harmony.Player)) +
+  geom_text_repel(
+    aes(label = Harmony.Player, y = Moving_Avg_Percentile),
+    nudge_x = 0.5,
+    direction = 'y',
+    hjust = 0.5,
+    vjust = 0.5
+  ) +
+  scale_x_continuous(breaks = seq(40, max(df$Season.No), by = 3)) + # Adjust x-axis breaks
+  labs(title = "Moving Average of Percentile for Players Over 0.6 (Season 40+)",
+       x = "Season Number",
+       y = "Percentile") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), # Improve x-axis label readability
+        legend.position = "bottom") # Hide the legend due to ggrepel labels
+
+plot
+
+```
+
+Concistency
+```{r}
+
+# Calculate the standard deviation of percentile for each player
+player_consistency_index <- df %>%
+  group_by(Harmony.Player) %>%
+  summarize(
+    Std_Dev_Percentile = sd(Percentile, na.rm = TRUE),
+    Mean_Percentile = mean(Percentile, na.rm = TRUE),
+    Games_Played = n() # Count the number of seasons they participated in
+  ) %>%
+  ungroup() %>%
+  # Filter out players with less than a certain number of games to avoid skewed consistency metrics
+  filter(Games_Played >= 3) %>%
+  # Add a consistency index (lower is more consistent)
+  mutate(Consistency_Index = 1 / Std_Dev_Percentile) %>%
+  arrange(Std_Dev_Percentile) # Arrange by standard deviation to find the most consistent players
+
+# View the first few rows of the player consistency statistics
+head(player_consistency_index)
+
+# Bar Plot
+# Assuming player_consistency_index is your dataframe
+consistencygraph <- ggplot(player_consistency_index, aes(x = reorder(Harmony.Player, Consistency_Index), y = Consistency_Index)) +
+  geom_col() +
+  coord_flip() + # Flip the coordinates to make it a horizontal bar chart
+  labs(title = "Player Consistency Index (3 or more games)",
+       x = "Player",
+       y = "Consistency Index") +
+  theme_minimal()
+ggsave("consistency.png", consistencygraph, width = 12, height = 8, dpi = 300)
+
+
+
+# Boxplot
+variability <- ggplot(df, aes(x = Harmony.Player, y = Percentile)) +
+  geom_boxplot() +
+  coord_flip() + # Flip the coordinates for easier reading
+  labs(title = "Variability in Player Performance Percentiles",
+       x = "Player",
+       y = "Percentile") +
+  theme_minimal()
+ggsave("variability.png", variability, width = 12, height = 8, dpi = 300)
+
+
+# consistency
+ggplot(player_consistency_index, aes(x = Harmony.Player, y = Mean_Percentile)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = Mean_Percentile - Std_Dev_Percentile, ymax = Mean_Percentile + Std_Dev_Percentile), width = 0.2) +
+  coord_flip() + # Flip the coordinates for easier reading
+  labs(title = "Player Performance with Consistency Range (3 or more seasons)",
+       x = "Player",
+       y = "Average Percentile") +
+  theme_minimal()
+
+```
+
+variability, min 2 seasons
+```{r}
+df_filtered <- df %>%
+  group_by(Harmony.Player) %>%
+  filter(n() >= 2) %>% # Filter out players with fewer than 2 seasons
+  ungroup()
+
+# Categorize the percentile into the desired ranges with the new gradient categories
+df_filtered <- df_filtered %>%
+  mutate(Percentile_Range = cut(Percentile,
+                                breaks = c(-Inf, 0.4, 0.6, 0.75, 0.9, 0.95, 1),
+                                labels = c("< 0.4", "0.4 - 0.6", "0.6 - 0.75", "0.75 - 0.9", "0.9 - 0.95", "> 0.95")))
+
+# Define the colors for the custom fill scale, including new colors for the additional categories
+colors <- c("< 0.4" = "#d73027",
+            "0.4 - 0.6" = "#fc8d59",
+            "0.6 - 0.75" = "#fee08b",
+            "0.75 - 0.9" = "#d9ef8b",
+            "0.9 - 0.95" = "#a6d96a",
+            "> 0.95" = "#66bd63")
+
+# Now create the boxplot with color filling based on percentile ranges
+boxplot <- ggplot(df_filtered, aes(x = Harmony.Player, y = Percentile, fill = Percentile_Range)) +
+  geom_boxplot() +
+  scale_fill_manual(values = colors) +
+  coord_flip() + # Flip the coordinates for easier reading
+  labs(title = "Variability in Player Performance Percentiles (Min 2 Seasons)",
+       x = "Player",
+       y = "Percentile") +
+  theme_minimal()
+
+boxplot
+ggsave("variability_percentiles.png", boxplot, width = 12, height = 8, dpi = 300)
+
+```
+
+
+```{r}
+top_performers_each_season <- df %>%
+  group_by(Season.No) %>%
+  slice_max(order_by = Percentile, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  arrange(Season.No)
+
+# Handle ties by grouping by season and percentile, then adding a small random jitter
+top_performers_each_season <- top_performers_each_season %>%
+  mutate(Position = as.numeric(Season.No) + ifelse(duplicated(Season.No), 0.2, 0))
+
+# Create a chart for the top performers with colors and increased overlaps
+top_performers_plot <- ggplot(top_performers_each_season, aes(x = Position, y = Percentile, fill = Harmony.Player)) +
+  geom_bar(stat = "identity", position = "dodge", show.legend = FALSE) + # Use bars with dodging
+  geom_text_repel(aes(label = Harmony.Player),
+                  max.overlaps = Inf, # Allow infinite overlaps
+                  nudge_y = 0.025, # Adjust text nudge if necessary
+                  size = 3,
+                  box.padding = 0.35) +
+  scale_fill_brewer(palette = "Set3") + # Color the bars by player
+  scale_x_continuous(breaks = seq(1, max(df$Season.No), by = 3)) + # Adjust x-axis breaks
+  labs(title = "Top Clan Performers Each Season",
+       x = "Season Number",
+       y = "Top Percentile") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Improve x-axis label readability
+
+top_performers_plot
+ggsave("topperformers.png", top_performers_plot, width = 12, height = 8, dpi = 300)
+
+```
+Performers trend over time
+```{r}
+top_performers_over_time <- df %>%
+  filter(Harmony.Player %in% top_performers_each_season$Harmony.Player) %>%
+  arrange(Harmony.Player, Season.No)
+
+# Create a line plot for top performers' performance trend over time
+topperformers_trend <- ggplot(top_performers_over_time, aes(x = Season.No, y = Percentile, group = Harmony.Player, color = Harmony.Player)) +
+  geom_line() + # Line for each player's trend
+  geom_point() + # Point for each season's percentile
+  labs(title = "Performance Trend of Top Performers Over Time",
+       x = "Season Number",
+       y = "Percentile") +
+  theme_minimal() +
+  theme(legend.position = "bottom") # Optional: Hide the legend if there are too many players
+
+ggsave("top_performers_trend.png", topperformers_trend, width = 12, height = 8, dpi = 300)
+
+
+```
+
+
+participateion with trendline
+```{r}
+participation_per_season <- df %>%
+  group_by(Season.No) %>%
+  summarize(Participants = n_distinct(Harmony.Player)) %>%
+  filter(Participants > 0) %>% # Only include seasons with participation
+  ungroup()
+
+# Create a bar chart for the number of participants per season with detailed y-axis and a moving average
+participation_plot <- ggplot(participation_per_season, aes(x = as.factor(Season.No), y = Participants)) +
+  geom_col(fill = "steelblue") + # Use columns to represent the number of participants each season
+  geom_smooth(aes(group = 1), # Add a moving average curve
+              method = "loess", # Local polynomial regression fitting
+              se = FALSE, # Don't include a shaded confidence interval
+              color = "red", size = 1) +
+  scale_y_continuous(breaks = seq(0, max(participation_per_season$Participants), by = 3)) + # Detailed y-axis
+  labs(title = "Player Participation Per Season with Trend",
+       x = "Season Number",
+       y = "Number of Participants") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5), # Rotate x-axis labels for readability
+        axis.text.y = element_text(color = "black")) # Ensure y-axis labels are clear
+
+participation_plot
+ggsave("participation_trend.png", participation_plot, width = 12, height = 8, dpi = 300)
+
+
+```
+
+```{r}
+
+
+```
+
