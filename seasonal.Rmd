@@ -74,7 +74,7 @@ cumulative_wins_over_time <- ggplot(cumulative_wins, aes(x = Season.No, y = cumu
        y = "Cumulative Wins") +
   theme(legend.position = "none") # Hide the legend due to ggrepel labels
 
-ggsave("cumulative_wins_over_time.png", cumulative_wins_over_time, width = 12, height = 8, dpi = 300)
+ggsave("cumulative_wins_over_time.png", cumulative_wins_over_time, width = 12, height = 8, dpi = 300, bg = "white")
 ```
 
 
@@ -164,7 +164,7 @@ perc_prog_over_time <- ggplot(df_filtered, aes(x = Season.No, y = Percentile, gr
   theme(legend.position = "bottom") + # Move the legend to the bottom
   ylim(0, 1.2) # Set y-axis limits
 
-ggsave("perc_prog_over_time.png", perc_prog_over_time, width = 12, height = 8, dpi = 300)
+ggsave("perc_prog_over_time.png", perc_prog_over_time, width = 12, height = 8, dpi = 300, bg = "white")
 
 ```
 
@@ -222,7 +222,7 @@ win_ratio_plot + theme(legend.position = "bottom",
                        legend.title = element_text(size = 7), # Smaller title
                        legend.margin = margin(2, 2, 2, 2)) # Tighter margin around the legend
 win_ratio_plot + theme(legend.position = "bottom")
-ggsave("winratioprogression.png", win_ratio_plot, width = 12, height = 8, dpi = 300)
+ggsave("winratioprogression.png", win_ratio_plot, width = 12, height = 8, dpi = 300, bg = "white")
 # Hide the legend as there are too many players
 
 win_ratio_plot
@@ -283,7 +283,7 @@ heatmap_plot <- ggplot(df_filtered, aes(x = Season.No, y = Harmony.Player, fill 
        y = "Player Name") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) # Rotate x-axis text if needed
-ggsave("heatmap_plot.png", heatmap_plot, width = 12, height = 8, dpi = 300)
+ggsave("heatmap_plot.png", heatmap_plot, width = 12, height = 8, dpi = 300, bg = "white")
 # Print the heatmap plot
 heatmap_plot
 ```
@@ -340,7 +340,7 @@ ltv_graph <- ggplot(high_ltv_players, aes(x = reorder(Harmony.Player, LTV), y = 
        y = "Lifetime Value (LTV)") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) # Rotate player names for readability
-ggsave("ltvgraph.png", ltv_graph, width = 12, height = 8, dpi = 300)
+ggsave("ltvgraph.png", ltv_graph, width = 12, height = 8, dpi = 300, bg = "white")
 
 
 ```
@@ -367,7 +367,7 @@ clan_moving_average <- ggplot(clan_season_stats, aes(x = Season.No)) +
        y = "Average Percentile") +
   theme_minimal() +
   theme(legend.title = element_blank()) # Removes the legend title if desired
-ggsave("clan_moving_average.png", clan_moving_average, width = 12, height = 8, dpi = 300)
+ggsave("clan_moving_average.png", clan_moving_average, width = 12, height = 8, dpi = 300, bg = "white")
 
 ```
 
@@ -410,7 +410,7 @@ plot <- ggplot(player_season_stats_over_60, aes(x = Season.No, group = Harmony.P
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), # Improve x-axis label readability
         legend.position = "bottom") # Hide the legend due to ggrepel labels
-ggsave("player_percentiles_over_60.png", plot, width = 12, height = 8, dpi = 300)
+ggsave("player_percentiles_over_60.png", plot, width = 12, height = 8, dpi = 300, bg = "white")
 
 
 plot
@@ -498,7 +498,7 @@ consistencygraph <- ggplot(player_consistency_index, aes(x = reorder(Harmony.Pla
        x = "Player",
        y = "Consistency Index") +
   theme_minimal()
-ggsave("consistency.png", consistencygraph, width = 12, height = 8, dpi = 300)
+ggsave("consistency.png", consistencygraph, width = 12, height = 8, dpi = 300, bg = "white")
 
 
 
@@ -510,7 +510,7 @@ variability <- ggplot(df, aes(x = Harmony.Player, y = Percentile)) +
        x = "Player",
        y = "Percentile") +
   theme_minimal()
-ggsave("variability.png", variability, width = 12, height = 8, dpi = 300)
+ggsave("variability.png", variability, width = 12, height = 8, dpi = 300, bg = "white")
 
 
 # consistency
@@ -557,7 +557,7 @@ boxplot <- ggplot(df_filtered, aes(x = Harmony.Player, y = Percentile, fill = Pe
   theme_minimal()
 
 boxplot
-ggsave("variability_percentiles.png", boxplot, width = 12, height = 8, dpi = 300)
+ggsave("variability_percentiles.png", boxplot, width = 12, height = 8, dpi = 300, bg = "white")
 
 ```
 
@@ -590,7 +590,7 @@ top_performers_plot <- ggplot(top_performers_each_season, aes(x = Position, y = 
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Improve x-axis label readability
 
 top_performers_plot
-ggsave("topperformers.png", top_performers_plot, width = 12, height = 8, dpi = 300)
+ggsave("topperformers.png", top_performers_plot, width = 12, height = 8, dpi = 300, bg = "white")
 
 ```
 Performers trend over time
@@ -609,7 +609,7 @@ topperformers_trend <- ggplot(top_performers_over_time, aes(x = Season.No, y = P
   theme_minimal() +
   theme(legend.position = "bottom") # Optional: Hide the legend if there are too many players
 
-ggsave("top_performers_trend.png", topperformers_trend, width = 12, height = 8, dpi = 300)
+ggsave("top_performers_trend.png", topperformers_trend, width = 12, height = 8, dpi = 300, bg = "white")
 
 
 ```
@@ -639,7 +639,7 @@ participation_plot <- ggplot(participation_per_season, aes(x = as.factor(Season.
         axis.text.y = element_text(color = "black")) # Ensure y-axis labels are clear
 
 participation_plot
-ggsave("participation_trend.png", participation_plot, width = 12, height = 8, dpi = 300)
+ggsave("participation_trend.png", participation_plot, width = 12, height = 8, dpi = 300, bg = "white")
 
 
 ```
